@@ -40,6 +40,7 @@ def test_convert1(capsys, monkeypatch):
 
     expected_float = 0.0234881295
 
+
     # Überprüfen Sie den Fließkommawert mit pytest.approx
     assert captured_float == pytest.approx(expected_float, rel=1e-9)
 
