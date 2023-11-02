@@ -33,7 +33,7 @@
     {
       "name": "Lists",
       "setup": "sudo -H pip3 install -r requirements.txt",
-      "run": "pytest -v  -k \"test_conver1\"",
+      "run": "pytest -v  -k \"test_convert1\"",
       "input": "",
       "output": "",
       "comparison": "included",
