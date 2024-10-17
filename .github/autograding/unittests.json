@@ -1,31 +1,31 @@
 [
   {
-    "name": "Lists",
-    "function": "Lists",
+    "name": "test_lists",
+    "function": "test_lists",
     "timeout": 10,
     "points": 2
   },
   {
-    "name": "Lists",
-    "function": "Lists",
+    "name": "test_inout",
+    "function": "test_inout",
     "timeout": 10,
     "points": 2
   },
   {
-    "name": "Lists",
-    "function": "Lists",
+    "name": "test_invalid_units",
+    "function": "test_invalid_units",
     "timeout": 10,
     "points": 2
   },
   {
-    "name": "Lists",
-    "function": "Lists",
+    "name": "test_convert1",
+    "function": "test_convert1",
     "timeout": 10,
     "points": 2
   },
   {
-    "name": "Lists",
-    "function": "Lists",
+    "name": "test_convert2",
+    "function": "test_convert2",
     "timeout": 10,
     "points": 2
   }
