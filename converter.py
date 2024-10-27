@@ -7,21 +7,15 @@ def main():
         print(f'* {unit}')
 
     value = float(input('Länge > '))
-    unit_from = -1
-    while unit_from == -1:
-        unit = input('Einheit von >')
-        try:
-            unit_from = units.index(unit)
-        except ValueError:
-            print('Ungültige Einheit')
+    unit_from = input('Einheit von: ')
+    while not unit_from in units:
+        print('Ungültige Einheit')
+        unit_from = input('Einheit von: ')
 
-    unit_to = -1
-    while unit_to == -1:
-        unit = input('Einheit nach >')
-        try:
-            unit_to = units.index(unit)
-        except ValueError:
-            print('Ungültige Einheit')
+    unit_to = input('Einheit von: ')
+    while not unit_to in units:
+        print('Ungültige Einheit')
+        unit_to = input('Einheit von: ')
 
     result = value * factors[unit_to] / factors[unit_from]
     print(f'{value} {units[unit_from]} = {result} {units[unit_to]}')
