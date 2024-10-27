@@ -12,11 +12,14 @@ def main():
         print('Ungültige Einheit')
         unit_from = input('Einheit von: ')
 
-    unit_to = input('Einheit von: ')
+    unit_to = input('Einheit zu: ')
     while not unit_to in units:
         print('Ungültige Einheit')
-        unit_to = input('Einheit von: ')
+        unit_to = input('Einheit zu: ')
 
-    result = value * factors[unit_to] / factors[unit_from]
-    print(f'{value} {units[unit_from]} = {result} {units[unit_to]}')
+    result = value * factors[units.index(unit_to)] / factors[units.index(unit_from)]
+    print(f'{value} {units[units.index(unit_from)]} = {result} {units[units.index(unit_to)]}')
     return units, factors
+
+if __name__ == '__main__':
+    main()
