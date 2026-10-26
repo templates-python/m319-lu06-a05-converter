@@ -1,0 +1,105 @@
+name: Copy Issues from Template Repo
+
+# Liegt im TEMPLATE-Repo (z.B. templates-python/m319-lu05-a12-pieces) und wird
+# beim Erstellen einer Kopie (z.B. via GitHub Classroom "Accept assignment",
+# das intern "Use this template" nutzt) automatisch mitkopiert.
+#
+# Läuft beim ersten Push in die neu erstellte Kopie und überträgt die Issues
+# des Template-Repos in die Kopie. Ein Zähler-Guard sorgt dafür, dass bei
+# jedem weiteren Push (durch den Lernenden) nichts mehr passiert.
+#
+# Voraussetzung: In der ZIEL-Organisation (dort, wo Classroom die
+# Schüler-Repos anlegt) existiert ein Organisations-Secret
+# TEMPLATE_REPO_PAT. Sichtbarkeit MUSS "All repositories" oder
+# "Private repositories" sein - "Selected repositories" funktioniert nicht,
+# weil neu erstellte Schüler-Repos sonst jedes Mal manuell freigeschaltet
+# werden müssten.
+#
+# PAT-Scope: Fine-grained PAT, Lesezugriff (Issues: Read-only) NUR auf das
+# Template-Repo templates-python/m319-lu05-a12-pieces.
+
+on:
+  push:
+    branches:
+      - main   # <-- anpassen, falls der Default-Branch anders heisst
+
+permissions:
+  issues: write   # damit der eingebaute GITHUB_TOKEN Issues anlegen darf
+
+jobs:
+  copy-issues:
+    # Sicherheitsnetz: im Template-Repo selbst nie ausführen (dort hat es ja
+    # bereits Issues - der Zähler-Guard unten würde das ohnehin verhindern).
+    if: github.repository != 'templates-python/m319-lu06-a05-converter'
+    runs-on: ubuntu-latest
+    env:
+      TEMPLATE_REPO: templates-python/m319-lu05-a12-pieces   # <-- anpassen
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}   # Default: Zugriff auf DIESES (neue) Repo
+
+    steps:
+      - name: Prüfen, ob im neuen Repo bereits Issues existieren
+        id: guard
+        run: |
+          count=$(gh issue list --repo "${{ github.repository }}" --state all --limit 1 --json number --jq 'length')
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+          echo "Bestehende Issues im neuen Repo: $count"
+
+      - name: Fehlende Labels aus dem Template übernehmen
+        if: steps.guard.outputs.count == '0'
+        run: |
+          set -euo pipefail
+
+          GH_TOKEN="${{ secrets.TEMPLATE_REPO_PAT }}" gh label list \
+            --repo "$TEMPLATE_REPO" --limit 200 \
+            --json name,color,description > template-labels.json
+
+          existing=$(gh label list --repo "${{ github.repository }}" --limit 200 \
+            --json name --jq '.[].name')
+
+          jq -c '.[]' template-labels.json | while read -r label; do
+            name=$(echo "$label" | jq -r '.name')
+            if ! grep -qxF "$name" <<< "$existing"; then
+              color=$(echo "$label" | jq -r '.color')
+              desc=$(echo "$label" | jq -r '.description // ""')
+              gh label create "$name" \
+                --repo "${{ github.repository }}" \
+                --color "$color" \
+                --description "$desc" \
+                --force
+            fi
+          done
+
+      - name: Issues aus Template-Repo kopieren
+        if: steps.guard.outputs.count == '0'
+        run: |
+          set -euo pipefail
+
+          GH_TOKEN="${{ secrets.TEMPLATE_REPO_PAT }}" gh issue list \
+            --repo "$TEMPLATE_REPO" \
+            --state all \
+            --limit 1000 \
+            --json title,body,labels,state \
+            --jq '.[] | @base64' > issues.b64
+
+          while IFS= read -r line; do
+            issue=$(echo "$line" | base64 --decode)
+            title=$(echo "$issue" | jq -r '.title')
+            body=$(echo "$issue" | jq -r '.body // ""')
+            state=$(echo "$issue" | jq -r '.state')
+            labels=$(echo "$issue" | jq -r '[.labels[].name] | join(",")')
+
+            args=(--repo "${{ github.repository }}" --title "$title" --body "$body")
+            if [ -n "$labels" ]; then
+              args+=(--label "$labels")
+            fi
+
+            # Schreibt ins neue Repo -> nutzt das Default-GH_TOKEN (GITHUB_TOKEN)
+            url=$(gh issue create "${args[@]}")
+            echo "Angelegt: $url"
+
+            # GitHub erlaubt kein direktes Anlegen im Zustand "closed",
+            # daher: anlegen, danach ggf. schliessen.
+            if [ "$state" = "CLOSED" ]; then
+              gh issue close "$url" --repo "${{ github.repository }}" --reason "not planned" || true
+            fi
+          done < issues.b64
